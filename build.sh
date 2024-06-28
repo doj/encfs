@@ -6,7 +6,13 @@
 
 ${CMAKE} --version
 
-CFG=$*
+if [ "$1" = Debug -o "$1" = debug ] ; then
+    shift
+    CFG="-DCMAKE_BUILD_TYPE=Debug $*"
+else
+    CFG=$*
+fi
+
 if [[ "$CHECK" == "true" ]]; then
   CFG="-DLINT=ON $CFG"
 fi
@@ -18,14 +24,12 @@ fi
 
 cd build
 ${CMAKE} .. ${CFG}
-make -j2
-make unittests
+make -j$(nproc)
+make -j$(nproc) unittests
 make test
 if [[ "$INTEGRATION" == "true" ]]; then
   make integration
 fi
-
-cd ..
 
 echo
 echo 'Everything looks good, you can install via "make install -C build".'
