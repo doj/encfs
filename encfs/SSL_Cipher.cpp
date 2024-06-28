@@ -30,7 +30,7 @@
 #include <string>
 #include <sys/mman.h>
 #include <sys/time.h>
-
+#include <cassert>
 #include "Cipher.h"
 #include "Error.h"
 #include "Interface.h"
@@ -155,12 +155,9 @@ int TimedPBKDF2(const char *pass, int passlen, const unsigned char *salt,
 // - Version 2:1 adds support for Message Digest function interface
 // - Version 2:2 adds PBKDF2 for password derivation
 // - Version 3:0 adds a new IV mechanism
-static Interface BlowfishInterface("ssl/blowfish", 3, 0, 2);
-static Interface AESInterface("ssl/aes", 3, 0, 2);
+
+#if !defined(OPENSSL_NO_CAMELLIA)
 static Interface CAMELLIAInterface("ssl/camellia", 3, 0, 2);
-
-#ifndef OPENSSL_NO_CAMELLIA
-
 static Range CAMELLIAKeyRange(128, 256, 64);
 static Range CAMELLIABlockRange(64, 4096, 16);
 
@@ -201,8 +198,9 @@ static bool CAMELLIA_Cipher_registered =
 
 #endif
 
-#ifndef OPENSSL_NO_BF
-
+// TODO: is the Blowfish cipher still fully supported with OpenSSL 3 ?
+#if !defined(OPENSSL_NO_BF) && 0
+static Interface BlowfishInterface("ssl/blowfish", 3, 0, 2);
 static Range BFKeyRange(128, 256, 32);
 static Range BFBlockRange(64, 4096, 8);
 
@@ -227,8 +225,8 @@ static bool BF_Cipher_registered =
                      BFKeyRange, BFBlockRange, NewBFCipher);
 #endif
 
-#ifndef OPENSSL_NO_AES
-
+#if !defined(OPENSSL_NO_AES)
+static Interface AESInterface("ssl/aes", 3, 0, 2);
 static Range AESKeyRange(128, 256, 64);
 static Range AESBlockRange(64, 4096, 16);
 
@@ -341,10 +339,13 @@ SSLKey::~SSLKey() {
   pthread_mutex_destroy(&mutex);
 }
 
-inline unsigned char *KeyData(const std::shared_ptr<SSLKey> &key) {
+static inline unsigned char*
+KeyData(const std::shared_ptr<SSLKey> &key) {
   return key->buffer;
 }
-inline unsigned char *IVData(const std::shared_ptr<SSLKey> &key) {
+
+static inline unsigned char*
+IVData(const std::shared_ptr<SSLKey> &key) {
   return key->buffer + key->keySize;
 }
 
@@ -353,7 +354,8 @@ void initKey(const std::shared_ptr<SSLKey> &key, const EVP_CIPHER *_blockCipher,
   Lock lock(key->mutex);
   // initialize the cipher context once so that we don't have to do it for
   // every block..
-  EVP_EncryptInit_ex(key->block_enc, _blockCipher, nullptr, nullptr, nullptr);
+  auto ret = EVP_EncryptInit_ex(key->block_enc, _blockCipher, nullptr, nullptr, nullptr);
+  assert(ret);
   EVP_DecryptInit_ex(key->block_dec, _blockCipher, nullptr, nullptr, nullptr);
   EVP_EncryptInit_ex(key->stream_enc, _streamCipher, nullptr, nullptr, nullptr);
   EVP_DecryptInit_ex(key->stream_dec, _streamCipher, nullptr, nullptr, nullptr);

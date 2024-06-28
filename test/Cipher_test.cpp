@@ -42,6 +42,7 @@ class CipherTest : public TestWithParam<Cipher::CipherAlgorithm> {
  protected:
   virtual void SetUp() {
     Cipher::CipherAlgorithm alg = GetParam();
+    std::cout << "testing " << alg.name << std::endl;
     cipher = Cipher::New(alg.name, alg.keyLength.closest(256));
   }
   virtual void TearDown() {}
