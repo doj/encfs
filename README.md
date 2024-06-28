@@ -1,6 +1,12 @@
 # EncFS - an Encrypted Filesystem
 
-**This project is NOT maintained.  For details, see the [Status](#status) section.**
+This is a fork from the original source code at https://github.com/vgough/encfs
+Changes in this fork:
+- support the fuse3 library
+- support OpenSSL 3
+
+for questions about this fork write to
+Dirk Jagdmann <doj@cubic.org>
 
 ## About
 
